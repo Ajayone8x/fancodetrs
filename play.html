@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#111210">
+  <meta name="referrer" content="no-referrer">
+  <title>ALLROUNDER · Live Cricket</title>
+  <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.16.2/dist/shaka-player.ui.min.js"></script>
+  <style>
+    :root {
+      --ar-bg: #0c0d0b;
+      --ar-panel: rgba(25, 26, 22, 0.75);
+      --ar-border: rgba(217, 180, 92, 0.22);
+      --ar-gold: #d9b45c;
+      --ar-gold-hi: #f3d98d;
+      --ar-red: #ff5252;
+      --ar-orange: #ff9f0a;
+      --ar-text: #f5f5f2;
+      --ar-muted: #92938a;
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-t: env(safe-area-inset-top, 0px);
+    }
+
+    *, *::before, *::after {
+      margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%; height: 100%; min-height: 100dvh;
+      background: var(--ar-bg); color: var(--ar-text);
+      overflow: hidden; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button {
+      font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; outline: none;
+    }
+
+    /* Top Navigation Overlay */
+    .top-bar {
+      position: fixed; top: calc(12px + var(--safe-t)); left: 16px; right: 16px;
+      z-index: 60; display: flex; align-items: center; justify-content: space-between;
+      pointer-events: none; transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .top-bar.gone { opacity: 0; transform: translateY(-10px); }
+
+    .brand-btn {
+      pointer-events: auto; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 14px; border-radius: 12px;
+      background: var(--ar-panel); border: 1px solid var(--ar-border);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .brand-btn:active { transform: scale(0.96); }
+
+    .brand-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--ar-gold);
+      box-shadow: 0 0 10px var(--ar-gold);
+    }
+
+    .brand-title {
+      font-size: 13px; font-weight: 850; letter-spacing: 1.8px; color: var(--ar-gold-hi);
+    }
+
+    /* Custom Dialog Alerts */
+    .alert-scrim {
+      position: fixed; inset: 0; z-index: 99999;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+      opacity: 0; pointer-events: none; transition: opacity 0.28s ease;
+    }
+
+    .alert-scrim.visible { opacity: 1; pointer-events: auto; }
+
+    .alert-card {
+      width: 100%; max-width: 320px;
+      background: linear-gradient(145deg, rgba(30, 31, 26, 0.95), rgba(18, 19, 15, 0.98));
+      border: 1px solid var(--ar-border); border-radius: 20px;
+      padding: 24px; text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      transform: scale(0.92); opacity: 0; transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.3s;
+    }
+
+    .alert-scrim.visible .alert-card { transform: scale(1); opacity: 1; }
+
+    .alert-icon {
+      width: 48px; height: 48px; margin: 0 auto 16px; border-radius: 14px;
+      background: rgba(217, 180, 92, 0.12); border: 1px solid var(--ar-border);
+      display: flex; align-items: center; justify-content: center; color: var(--ar-gold);
+    }
+
+    .alert-icon svg { width: 24px; height: 24px; fill: currentColor; }
+
+    .alert-title { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; margin-bottom: 8px; }
+    .alert-message { font-size: 13px; line-height: 1.5; color: var(--ar-muted); margin-bottom: 20px; }
+
+    .alert-actions { display: flex; flex-direction: column; gap: 8px; }
+
+    .alert-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      height: 44px; border-radius: 12px; font-size: 14px; font-weight: 750;
+      text-decoration: none; transition: background 0.15s, transform 0.15s;
+    }
+
+    .alert-btn.primary {
+      background: linear-gradient(100deg, var(--ar-gold), var(--ar-gold-hi));
+      color: #111210; box-shadow: 0 4px 15px rgba(217, 180, 92, 0.2);
+    }
+
+    .alert-btn.secondary {
+      background: rgba(255, 255, 255, 0.06); color: var(--ar-text); border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .alert-btn:active { transform: scale(0.97); }
+
+    /* Player Canvas */
+    #player { position: fixed; inset: 0; background: #000; overflow: hidden; user-select: none; }
+    #vid { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; }
+
+    /* Loaders */
+    #overlay {
+      position: absolute; inset: 0; z-index: 10; background: var(--ar-bg);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+      transition: opacity 0.4s ease;
+    }
+
+    #overlay.gone { opacity: 0; pointer-events: none; }
+
+    .loader-ring {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 3px solid rgba(217, 180, 92, 0.15); border-top-color: var(--ar-gold);
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .load-label { font-size: 13px; font-weight: 600; color: var(--ar-muted); letter-spacing: 0.5px; }
+
+    #bufspin {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      z-index: 8; pointer-events: none; display: none;
+    }
+
+    #bufspin div {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, 0.2); border-top-color: var(--ar-gold);
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* Big Center Play Button */
+    #bigplay {
+      position: absolute; inset: 0; z-index: 16; display: flex; align-items: center; justify-content: center;
+      pointer-events: none; transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    #bigplay.shown { pointer-events: auto; }
+    #bigplay.gone { opacity: 0; transform: scale(0.85); pointer-events: none; }
+
+    .bpbtn {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: var(--ar-panel); border: 1px solid var(--ar-border);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      display: flex; align-items: center; justify-content: center; color: var(--ar-gold-hi);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(217, 180, 92, 0.15);
+      transition: transform 0.2s cubic-bezier(0.32, 0.72, 0, 1), background 0.2s;
+    }
+
+    .bpbtn:active { transform: scale(0.9); }
+    .bpbtn svg { width: 30px; height: 30px; margin-left: 3px; fill: currentColor; }
+
+    /* Modern Floating Bottom Controls HUD */
+    #ctrls {
+      position: absolute; bottom: calc(16px + var(--safe-b)); left: 16px; right: 16px; max-width: 800px; margin: 0 auto;
+      z-index: 20; transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    #ctrls.gone { opacity: 0; pointer-events: none; transform: translateY(12px); }
+
+    .hud-card {
+      background: var(--ar-panel); border: 1px solid var(--ar-border);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-radius: 18px; padding: 10px 14px 12px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Scrubber Progress Bar */
+    #prog {
+      height: 20px; display: flex; align-items: center; cursor: pointer; position: relative; margin-bottom: 6px;
+    }
+
+    .pt {
+      position: relative; height: 4px; width: 100%; background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px; transition: height 0.15s ease;
+    }
+
+    #prog:hover .pt, #prog.drag .pt { height: 6px; }
+
+    .pbf { position: absolute; left: 0; top: 0; height: 100%; background: rgba(255, 255, 255, 0.25); border-radius: 4px; width: 0; }
+    .ppl { position: absolute; left: 0; top: 0; height: 100%; background: var(--ar-gold); border-radius: 4px; width: 0; }
+    .pth {
+      position: absolute; top: 50%; left: 0; width: 13px; height: 13px;
+      background: var(--ar-gold-hi); border-radius: 50%;
+      transform: translate(-50%, -50%); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      transition: opacity 0.15s, transform 0.15s; opacity: 0; pointer-events: none;
+    }
+
+    #prog:hover .pth, #prog.drag .pth { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+
+    /* Control Buttons Row */
+    #crow { display: flex; align-items: center; gap: 8px; }
+
+    .cb {
+      width: 38px; height: 38px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      color: var(--ar-text); transition: background 0.15s, color 0.15s, transform 0.15s;
+    }
+
+    .cb:hover { background: rgba(255, 255, 255, 0.08); color: var(--ar-gold-hi); }
+    .cb:active { transform: scale(0.92); }
+
+    .csp { flex: 1; }
+
+    /* Live Badge */
+    .live-pill {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 10px; border-radius: 8px;
+      background: rgba(255, 82, 82, 0.15); border: 1px solid rgba(255, 82, 82, 0.3);
+      font-size: 11px; font-weight: 850; letter-spacing: 0.8px; color: var(--ar-red);
+      cursor: default; transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+
+    .ldot { width: 6px; height: 6px; border-radius: 50%; background: var(--ar-red); animation: lblink 1.3s infinite; }
+    @keyframes lblink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    /* Quality Pill Button */
+    #bq {
+      width: auto !important; height: 34px !important; padding: 0 10px; gap: 5px;
+      background: rgba(217, 180, 92, 0.1); border: 1px solid var(--ar-border); border-radius: 8px;
+    }
+
+    #qlbl { font-size: 12px; font-weight: 750; color: var(--ar-gold-hi); }
+    #bq svg { transition: transform 0.2s; }
+    #bq.open svg { transform: rotate(180deg); }
+
+    /* Custom Quality Action Sheet */
+    #qsheet-ov {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+    }
+
+    #qsheet-ov.open { opacity: 1; pointer-events: auto; }
+
+    #qsheet {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 10000;
+      max-width: 400px; margin: 0 auto; padding: 12px 16px calc(16px + var(--safe-b));
+      transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    #qsheet-ov.open #qsheet { transform: translateY(0); }
+
+    .sheet-card {
+      background: linear-gradient(145deg, rgba(30, 31, 26, 0.98), rgba(18, 19, 15, 0.98));
+      border: 1px solid var(--ar-border); border-radius: 18px; overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    }
+
+    .sheet-grabber { width: 36px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.2); margin: 10px auto 6px; }
+    .sheet-title { font-size: 12px; font-weight: 800; color: var(--ar-muted); text-transform: uppercase; letter-spacing: 1.2px; text-align: center; padding: 4px 0 10px; }
+
+    .qrow {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; height: 46px; padding: 0 20px; font-size: 15px; font-weight: 600;
+      color: var(--ar-text); border-top: 1px solid rgba(255, 255, 255, 0.05); transition: background 0.12s;
+    }
+
+    .qrow:active { background: rgba(255, 255, 255, 0.08); }
+    .qrow.sel { color: var(--ar-gold-hi); font-weight: 750; }
+    .qrow svg { width: 18px; height: 18px; stroke: var(--ar-gold-hi); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+    .sheet-cancel {
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; margin-top: 10px; height: 48px; font-size: 15px; font-weight: 750;
+      color: var(--ar-gold-hi); border-radius: 14px;
+      background: rgba(30, 31, 26, 0.95); border: 1px solid var(--ar-border);
+    }
+
+    .sheet-cancel:active { background: rgba(255, 255, 255, 0.1); }
+
+    /* Error Overlay */
+    #err-ov {
+      position: absolute; inset: 0; z-index: 11; background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      display: none; align-items: center; justify-content: center; padding: 24px;
+    }
+
+    #err-ov.show { display: flex; }
+
+    @media (max-width: 480px) {
+      .hud-card { padding: 8px 10px 10px; }
+      #crow { gap: 4px; }
+      .cb { width: 34px; height: 34px; }
+      #bq { padding: 0 6px; }
+      .live-pill { padding: 4px 8px; font-size: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Top Navigation -->
+<div class="top-bar" id="topbar">
+  <a href="./" class="brand-btn" aria-label="Return home">
+    <span class="brand-dot"></span>
+    <span class="brand-title">ALLROUNDER</span>
+  </a>
+</div>
+
+<!-- Telegram Join Prompt -->
+<div class="alert-scrim" id="popup" role="dialog" aria-modal="true" aria-labelledby="popup-title">
+  <div class="alert-card">
+    <div class="alert-icon">
+      <svg viewBox="0 0 24 24"><path d="M9.993 15.674l-.398 5.604c.57 0 .817-.245 1.113-.54l2.67-2.557 5.53 4.047c1.014.558 1.734.264 1.987-.939l3.6-16.86c.3-1.4-.506-1.95-1.496-1.58L1.27 9.64c-1.37.53-1.35 1.29-.233 1.64l5.68 1.77 13.337-8.418c.59-.39 1.13-.175.69.215"/></svg>
+    </div>
+    <div class="alert-title" id="popup-title">Join Telegram</div>
+    <div class="alert-message">Get live match updates, links, and community updates instantly.</div>
+    <div class="alert-actions">
+      <a class="alert-btn primary" id="popupJoinBtn" href="https://t.me/+xdQNNePetGxjYjI1" target="_blank" rel="noopener noreferrer">Join Channel</a>
+      <button class="alert-btn secondary" id="popupSkipBtn">Maybe Later</button>
+    </div>
+  </div>
+</div>
+
+<!-- Player Area -->
+<div id="player">
+  <video id="vid" autoplay muted playsinline preload="metadata"></video>
+
+  <div id="overlay">
+    <div class="loader-ring"></div>
+    <div class="load-label">Connecting to live stream…</div>
+  </div>
+
+  <div id="bufspin"><div></div></div>
+
+  <!-- Stream Error Screen -->
+  <div id="err-ov">
+    <div class="alert-card">
+      <div class="alert-icon" style="color: var(--ar-red); background: rgba(255, 82, 82, 0.12); border-color: rgba(255, 82, 82, 0.2);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div class="alert-title" id="etitle">Stream Unavailable</div>
+      <div class="alert-message" id="emsg">This match stream is currently offline or unreachable.</div>
+      <div class="alert-actions">
+        <a href="https://t.me/+xdQNNePetGxjYjI1" target="_blank" rel="noopener noreferrer" class="alert-btn primary">Support Community</a>
+        <a href="./" class="alert-btn secondary">Back to Matches</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center Play Button -->
+  <div id="bigplay">
+    <button class="bpbtn" id="bpbtn" aria-label="Play video">
+      <svg viewBox="0 0 24 24"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.87l11-6.86a1 1 0 0 0 0-1.72L9.5 4.27A1 1 0 0 0 8 5.14z"/></svg>
+    </button>
+  </div>
+
+  <!-- Bottom HUD Controls -->
+  <div id="ctrls">
+    <div class="hud-card">
+      <div id="prog">
+        <div class="pt">
+          <div class="pbf" id="pbuf"></div>
+          <div class="ppl" id="ppl"></div>
+          <div class="pth" id="pth"></div>
+        </div>
+      </div>
+      <div id="crow">
+        <button class="cb" id="bplay" title="Play / Pause">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" id="pico">
+            <rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/>
+          </svg>
+        </button>
+        <button class="cb" id="bvol" title="Mute / Unmute">
+          <svg viewBox="0 0 24 24" width="20" height="20" id="vico">
+            <path d="M4 9v6h4l5 5V4L8 9H4z" fill="currentColor"/>
+            <path class="wave" d="M16.5 8.5a5 5 0 0 1 0 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/>
+            <path class="wave" d="M19 6a9 9 0 0 1 0 12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/>
+          </svg>
+        </button>
+        <div class="live-pill" id="livepill"><span class="ldot"></span><span id="lpitext">LIVE</span></div>
+        <div class="csp"></div>
+        <button class="cb" id="bq" title="Quality" style="display:none">
+          <span id="qlbl">–</span>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,3.5 5,7 8,3.5"/></svg>
+        </button>
+        <button class="cb" id="bfill" title="Fit / Fill">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="fillico">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
+            <path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+          </svg>
+        </button>
+        <button class="cb" id="bpip" title="Picture in Picture">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="5" width="18" height="14" rx="2.5"/><rect x="12.5" y="11.5" width="7" height="5" rx="1.5" fill="currentColor" stroke="none"/>
+          </svg>
+        </button>
+        <button class="cb" id="bfs" title="Fullscreen">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="fsico">
+            <path d="M9 4H4v5"/><path d="M15 4h5v5"/><path d="M9 20H4v-5"/><path d="M15 20h5v-5"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quality Menu -->
+  <div id="qsheet-ov">
+    <div id="qsheet">
+      <div class="sheet-card">
+        <div class="sheet-grabber"></div>
+        <div class="sheet-title">Stream Quality</div>
+        <div id="qsheet-list"></div>
+      </div>
+      <button class="sheet-cancel" id="qcancel">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+var JSON_URL  = 'https://raw.githubusercontent.com/drmlive/fancode-live-events/main/fancode.json';
+var DEFAULT_Q = '1080p';
+
+var sp = new URLSearchParams(location.search);
+var matchId = sp.get('id')||'';
+
+var vid      = document.getElementById('vid');
+var player   = document.getElementById('player');
+var topbar   = document.getElementById('topbar');
+var overlay  = document.getElementById('overlay');
+var bufspin  = document.getElementById('bufspin');
+var errOv    = document.getElementById('err-ov');
+var ctrls    = document.getElementById('ctrls');
+var prog     = document.getElementById('prog');
+var pbuf     = document.getElementById('pbuf');
+var ppl      = document.getElementById('ppl');
+var pth      = document.getElementById('pth');
+var bplay    = document.getElementById('bplay');
+var pico     = document.getElementById('pico');
+var bvol     = document.getElementById('bvol');
+var vico     = document.getElementById('vico');
+var livepill = document.getElementById('livepill');
+var lpitext  = document.getElementById('lpitext');
+var bq       = document.getElementById('bq');
+var qlbl     = document.getElementById('qlbl');
+var bfill    = document.getElementById('bfill');
+var fillico  = document.getElementById('fillico');
+var bpip     = document.getElementById('bpip');
+var bfs      = document.getElementById('bfs');
+var fsico    = document.getElementById('fsico');
+var bigplay  = document.getElementById('bigplay');
+var bpbtn    = document.getElementById('bpbtn');
+var qsOv     = document.getElementById('qsheet-ov');
+var qsList   = document.getElementById('qsheet-list');
+var qcancel  = document.getElementById('qcancel');
+
+var shakaPlayer = null;
+var qStreams = {}, currentQ = DEFAULT_Q;
+var isLive = true, isDragging = false, uPaused = false, hasError = false;
+var fillModeIdx = 0, isMuted = true;
+var hideTimer = null;
+var playerActivated = false;
+
+var FILL_MODES = [
+  {fit:'contain', scale:1,   title:'Fit',
+   icon:'<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>'},
+  {fit:'cover',   scale:1,   title:'Fill',
+   icon:'<rect x="3" y="3" width="18" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 3l18 18" stroke="currentColor" stroke-width="1.2" opacity=".5"/>'},
+  {fit:'contain', scale:1.35, title:'Zoom',
+   icon:'<circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="1.8"/><line x1="16" y1="16" x2="21" y2="21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="11" y1="8" x2="11" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="11" x2="14" y2="11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>'}
+];
+
+function closePopup(){ document.getElementById('popup').classList.remove('visible'); }
+document.getElementById('popupSkipBtn').addEventListener('click', closePopup);
+document.getElementById('popupJoinBtn').addEventListener('click', closePopup);
+
+function showLoad(){
+  hasError=false;
+  overlay.classList.remove('gone');
+  overlay.style.opacity='1';
+  errOv.classList.remove('show');
+}
+function hideOverlay(){
+  if(hasError) return;
+  overlay.style.opacity='0';
+  setTimeout(function(){overlay.classList.add('gone');}, 360);
+}
+function showErr(title,msg){
+  hasError=true;
+  overlay.style.opacity='0';
+  setTimeout(function(){overlay.classList.add('gone');}, 360);
+  document.getElementById('etitle').textContent=title;
+  document.getElementById('emsg').textContent=msg||'';
+  errOv.classList.add('show');
+}
+
+vid.addEventListener('waiting', function(){ bufspin.style.display='block'; });
+vid.addEventListener('playing', function(){ bufspin.style.display='none'; });
+vid.addEventListener('canplay', function(){ bufspin.style.display='none'; });
+
+function syncBig(){
+  if(vid.paused){ bigplay.classList.add('shown'); bigplay.classList.remove('gone'); }
+  else{ bigplay.classList.remove('shown'); bigplay.classList.add('gone'); }
+}
+
+bpbtn.addEventListener('click', function(e){
+  e.stopPropagation();
+  uPaused=false;
+  playerActivated=true;
+  vid.play().catch(function(){});
+});
+vid.addEventListener('play',  syncBig);
+vid.addEventListener('pause', syncBig);
+
+player.addEventListener('click', function(e){
+  if(e.target.closest('#ctrls') || e.target.closest('#topbar') || e.target.closest('.bpbtn')) return;
+  if(qsOv.classList.contains('open')){ closeQSheet(); return; }
+  if(!playerActivated){ playerActivated = true; showCtrls(); return; }
+  if(e.target === vid || e.target === player){
+    if(ctrls.classList.contains('gone')){ showCtrls(); return; }
+    togglePlay();
+  }
+});
+
+function showCtrls(){
+  ctrls.classList.remove('gone');
+  topbar.classList.remove('gone');
+  clearTimeout(hideTimer);
+  if(!vid.paused && !qsOv.classList.contains('open')){
+    hideTimer=setTimeout(function(){
+      ctrls.classList.add('gone');
+      topbar.classList.add('gone');
+    }, 3500);
+  }
+}
+player.addEventListener('mousemove', showCtrls);
+player.addEventListener('touchstart', showCtrls, {passive:true});
+showCtrls();
+
+function togglePlay(){
+  if(vid.paused){ uPaused=false; vid.play().catch(function(){}); }
+  else{ uPaused=true; vid.pause(); }
+}
+bplay.addEventListener('click', function(e){ e.stopPropagation(); togglePlay(); });
+function syncPlayIcon(){
+  pico.innerHTML=vid.paused
+    ?'<path d="M8 5.14v13.72a1 1 0 0 0 1.5.87l11-6.86a1 1 0 0 0 0-1.72L9.5 4.27A1 1 0 0 0 8 5.14z" fill="currentColor"/>'
+    :'<rect x="6" y="5" width="4" height="14" rx="1.5" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.5" fill="currentColor"/>';
+}
+vid.addEventListener('play',  function(){ syncPlayIcon(); showCtrls(); });
+vid.addEventListener('pause', function(){ syncPlayIcon(); showCtrls(); });
+
+bvol.addEventListener('click', function(e){
+  e.stopPropagation();
+  vid.muted=!vid.muted;
+  syncVol();
+});
+function syncVol(){
+  isMuted=vid.muted;
+  if(isMuted){
+    vico.innerHTML='<path d="M4 9v6h4l5 5V4L8 9H4z" fill="currentColor"/><line x1="16.5" y1="9.5" x2="22.5" y2="15.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="22.5" y1="9.5" x2="16.5" y2="15.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>';
+  } else {
+    vico.innerHTML='<path d="M4 9v6h4l5 5V4L8 9H4z" fill="currentColor"/><path class="wave" d="M16.5 8.5a5 5 0 0 1 0 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/><path class="wave" d="M19 6a9 9 0 0 1 0 12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/>';
+  }
+}
+
+livepill.addEventListener('click', function(){
+  if(!isLive||!vid.seekable||!vid.seekable.length) return;
+  var edge=vid.seekable.end(vid.seekable.length-1);
+  vid.currentTime=edge;
+  uPaused=false;
+  if(vid.paused) vid.play().catch(function(){});
+});
+setInterval(function(){
+  if(!isLive){ livepill.style.display='none'; return; }
+  if(!vid.seekable||!vid.seekable.length) return;
+  var edge=vid.seekable.end(vid.seekable.length-1);
+  var behind=edge-vid.currentTime>12;
+  livepill.style.cursor=behind?'pointer':'default';
+  lpitext.textContent=behind?'GO LIVE':'LIVE';
+  livepill.style.color=behind?'var(--ar-orange)':'var(--ar-red)';
+  livepill.style.background=behind?'rgba(255,159,10,0.15)':'rgba(255,82,82,0.15)';
+  livepill.style.borderColor=behind?'rgba(255,159,10,0.3)':'rgba(255,82,82,0.3)';
+  var dot=livepill.querySelector('.ldot');
+  if(dot) dot.style.background=behind?'var(--ar-orange)':'var(--ar-red)';
+}, 2000);
+
+vid.addEventListener('timeupdate', function(){
+  if(isDragging) return;
+  var p=(vid.duration&&isFinite(vid.duration))?vid.currentTime/vid.duration*100:99.5;
+  setP(p);
+});
+vid.addEventListener('progress', function(){
+  if(!vid.buffered.length||!isFinite(vid.duration)) return;
+  pbuf.style.width=(vid.buffered.end(vid.buffered.length-1)/vid.duration*100)+'%';
+});
+vid.addEventListener('loadedmetadata', function(){
+  isLive=!isFinite(vid.duration)||vid.duration>86400;
+  if(!isLive) livepill.style.display='none';
+});
+function setP(p){ p=Math.max(0,Math.min(100,p)); ppl.style.width=p+'%'; pth.style.left=p+'%'; }
+function spct(e){ var r=prog.getBoundingClientRect(),x=(e.touches?e.touches[0].clientX:e.clientX)-r.left; return Math.max(0,Math.min(1,x/r.width)); }
+function applySeek(f){ if(!isFinite(vid.duration)) return; vid.currentTime=f*vid.duration; setP(f*100); }
+prog.addEventListener('mousedown',  function(e){ isDragging=true; prog.classList.add('drag'); applySeek(spct(e)); });
+prog.addEventListener('touchstart', function(e){ isDragging=true; prog.classList.add('drag'); applySeek(spct(e)); },{passive:true});
+document.addEventListener('mousemove',  function(e){ if(isDragging) applySeek(spct(e)); });
+document.addEventListener('touchmove',  function(e){ if(isDragging){e.preventDefault();applySeek(spct(e));} },{passive:false});
+document.addEventListener('mouseup',    function(){ if(isDragging){isDragging=false;prog.classList.remove('drag');} });
+document.addEventListener('touchend',   function(){ if(isDragging){isDragging=false;prog.classList.remove('drag');} });
+
+var CHECK='<svg viewBox="0 0 24 24"><polyline points="4.5 12.5 9.5 17.5 19.5 6.5"/></svg>';
+
+function openQSheet(){
+  var avail=['1080p','720p','540p','480p','360p','240p'].filter(function(q){return qStreams[q];});
+  if(!avail.length) return;
+  qsList.innerHTML='';
+  avail.forEach(function(q){
+    var row=document.createElement('button');
+    row.className='qrow'+(q===currentQ?' sel':'');
+    row.innerHTML='<span>'+q+'</span>'+(q===currentQ?CHECK:'');
+    row.addEventListener('click',function(e){
+      e.stopPropagation();
+      var v=q;
+      closeQSheet();
+      if(v!==currentQ) setTimeout(function(){switchQ(v);}, 280);
+    });
+    qsList.appendChild(row);
+  });
+  bq.classList.add('open');
+  qsOv.classList.add('open');
+  clearTimeout(hideTimer);
+}
+function closeQSheet(){
+  bq.classList.remove('open');
+  qsOv.classList.remove('open');
+  showCtrls();
+}
+bq.addEventListener('click', function(e){
+  e.stopPropagation();
+  if(qsOv.classList.contains('open')) closeQSheet(); else openQSheet();
+});
+qcancel.addEventListener('click', closeQSheet);
+qsOv.addEventListener('click', function(e){ if(e.target===qsOv) closeQSheet(); });
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeQSheet(); });
+
+function switchQ(q){
+  if(!qStreams[q]) return;
+  currentQ=q; qlbl.textContent=q;
+  loadStream(qStreams[q],[]);
+}
+
+function applyFillMode(idx){
+  var m=FILL_MODES[idx];
+  vid.style.objectFit=m.fit;
+  vid.style.transform=m.scale!==1?'scale('+m.scale+')':'none';
+  fillico.innerHTML=m.icon;
+  bfill.title=m.title;
+}
+applyFillMode(0);
+bfill.addEventListener('click', function(e){
+  e.stopPropagation();
+  fillModeIdx=(fillModeIdx+1)%FILL_MODES.length;
+  applyFillMode(fillModeIdx);
+});
+
+if(!document.pictureInPictureEnabled) bpip.style.display='none';
+bpip.addEventListener('click', function(e){
+  e.stopPropagation();
+  if(document.pictureInPictureElement) document.exitPictureInPicture().catch(function(){});
+  else vid.requestPictureInPicture().catch(function(){});
+});
+
+bfs.addEventListener('click', function(e){
+  e.stopPropagation();
+  var inFs=!!(document.fullscreenElement||document.webkitFullscreenElement||document.mozFullScreenElement);
+  if(!inFs){
+    var p=player;
+    var req=p.requestFullscreen||p.webkitRequestFullscreen||p.mozRequestFullScreen;
+    if(req){ req.call(p).then(function(){if(screen.orientation&&screen.orientation.lock) screen.orientation.lock('landscape').catch(function(){});}).catch(function(){if(vid.webkitEnterFullscreen) vid.webkitEnterFullscreen();}); }
+    else if(vid.webkitEnterFullscreen){ vid.webkitEnterFullscreen(); }
+  } else {
+    var ex=document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen;
+    if(ex) ex.call(document).catch(function(){});
+    if(screen.orientation&&screen.orientation.unlock) screen.orientation.unlock();
+  }
+});
+function syncFs(){
+  var inFs=!!(document.fullscreenElement||document.webkitFullscreenElement||document.mozFullScreenElement);
+  fsico.innerHTML=inFs
+    ?'<path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/>'
+    :'<path d="M9 4H4v5"/><path d="M15 4h5v5"/><path d="M9 20H4v-5"/><path d="M15 20h5v-5"/>';
+}
+['fullscreenchange','webkitfullscreenchange','mozfullscreenchange'].forEach(function(e){document.addEventListener(e,syncFs);});
+
+async function tryShaka(url){
+  if(shakaPlayer){try{await shakaPlayer.destroy();}catch(e){}shakaPlayer=null;}
+  shakaPlayer=new shaka.Player();
+  await shakaPlayer.attach(vid);
+  shakaPlayer.configure({streaming:{bufferingGoal:10,rebufferingGoal:2,safeSeekOffset:5,lowLatencyMode:true}});
+  shakaPlayer.getNetworkingEngine().registerRequestFilter(function(t,req){req.allowCrossSiteCredentials=true;});
+  await shakaPlayer.load(url);
+}
+
+async function loadStream(url,fallbacks){
+  hasError=false;
+  shaka.polyfill.installAll();
+  var all=[url].concat((fallbacks||[]).filter(function(u){return u&&u!==url;}));
+  var lastErr=null;
+
+  if(shaka.Player.isBrowserSupported()){
+    for(var i=0;i<all.length;i++){
+      if(!all[i]) continue;
+      try{await tryShaka(all[i]);lastErr=null;break;}
+      catch(e){
+        var hs=(e.data&&e.data[1])?' (HTTP '+e.data[1]+')':'';
+        lastErr='Shaka Error '+(e.code||'?')+hs;
+        if(shakaPlayer){try{await shakaPlayer.destroy();}catch(x){}shakaPlayer=null;}
+      }
+    }
+  } else {lastErr='unsupported';}
+
+  if(lastErr&&vid.canPlayType('application/vnd.apple.mpegurl')){
+    vid.src=all[0]||url; lastErr=null;
+  }
+  if(lastErr){showErr('Playback Error',lastErr);return;}
+
+  vid.muted=true;
+  await vid.play().catch(function(){});
+  syncVol();
+
+  var onP=function(){vid.removeEventListener('playing',onP);hideOverlay();};
+  vid.addEventListener('playing',onP);
+  setTimeout(function(){if(!hasError) hideOverlay();}, 9000);
+}
+
+function fetchJSON(url){
+  return new Promise(function(res,rej){
+    var x=new XMLHttpRequest();
+    x.open('GET',url,true);
+    x.timeout=12000;
+    x.onreadystatechange=function(){
+      if(x.readyState!==4) return;
+      if(x.status>=200&&x.status<300){try{res(JSON.parse(x.responseText));}catch(e){rej(new Error('JSON parse error'));}}
+      else rej(new Error('HTTP '+x.status));
+    };
+    x.onerror=function(){rej(new Error('Network error'));};
+    x.ontimeout=function(){rej(new Error('Timeout'));};
+    x.send();
+  });
+}
+
+function resolve(data){
+  var list = (data && Array.isArray(data.matches)) ? data.matches : [];
+  if(!list.length) throw new Error('No matches found');
+
+  var m = null;
+  for(var i=0;i<list.length;i++){
+    if(String(list[i].match_id) === String(matchId)){
+      m = list[i];
+      break;
+    }
+  }
+  if(!m) throw new Error('Match not found');
+
+  if(m.status !== 'LIVE'){
+    throw new Error('Match is not live yet.');
+  }
+
+  var url = m.adfree_url || m.dai_url;
+  if(!url) throw new Error('No stream URL available');
+
+  var streams = {};
+  if(url.indexOf('1080p') !== -1){
+    streams['1080p'] = url;
+    streams['720p']  = url.replace('1080p','720p');
+    streams['540p']  = url.replace('1080p','540p');
+    streams['480p']  = url.replace('1080p','480p');
+    streams['360p']  = url.replace('1080p','360p');
+    streams['240p']  = url.replace('1080p','240p');
+  } else if(url.indexOf('720p') !== -1){
+    streams['720p']  = url;
+    streams['540p']  = url.replace('720p','540p');
+    streams['480p']  = url.replace('720p','480p');
+    streams['360p']  = url.replace('720p','360p');
+    streams['240p']  = url.replace('720p','240p');
+  } else {
+    streams['1080p'] = url;
+  }
+
+  return {type:'multi', streams:streams, match:m};
+}
+
+(function start(){
+  showLoad();
+  if(!matchId){showErr('Missing match ID','Please select a match from the match center.');return;}
+
+  fetchJSON(JSON_URL).then(function(data){
+    var r;
+    try{r=resolve(data);}
+    catch(e){showErr('Stream Unavailable',e.message);return;}
+
+    if(r.type==='multi'){
+      qStreams=r.streams;
+      var url = r.streams['1080p'] || r.streams['720p'] || r.streams['540p'] || r.streams['480p'] || r.streams['360p'] || r.streams['240p'];
+      if(!url){showErr('No Stream Stream Found','Stream URLs are currently empty.');return;}
+      currentQ = r.streams['1080p'] ? '1080p' : (r.streams['720p'] ? '720p' : '540p');
+      qlbl.textContent=currentQ;
+      bq.style.display='';
+
+      if(r.match && r.match.match_name){
+        document.title = r.match.match_name + ' · ALLROUNDER';
+      }
+
+      loadStream(url,[]);
+    } else {
+      bq.style.display='none';
+      loadStream(r.url,[]);
+    }
+  }).catch(function(e){showErr('Connection Error',e.message);});
+})();
+})();
+</script>
+</body>
+</html>
