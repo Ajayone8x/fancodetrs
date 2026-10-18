@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#171717">
+<meta name="description" content="ALLROUNDER — live cricket match discovery.">
+<title>ALLROUNDER — Live Cricket</title>
+<style>
+:root{color-scheme:dark;--bg:#171717;--bg2:#222;--card:#292929;--muted:#929292;--border:#3A3A3A;--gold:#D4AF5A;--gold-hi:#F0D58A;--text:#F5F5F2;--live:#ff625c;--radius:18px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+button,input,a{font:inherit}button,a{-webkit-tap-highlight-color:transparent}a{color:inherit}button{cursor:pointer}
+:focus-visible{outline:2px solid var(--gold-hi);outline-offset:3px}
+.site-header{position:sticky;top:0;z-index:20;background:rgba(23,23,23,.94);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
+.header-inner{max-width:1240px;margin:auto;padding:14px 24px;display:flex;align-items:center;gap:22px}
+.brand{display:flex;align-items:center;gap:11px;text-decoration:none;flex-shrink:0}
+.brand-mark{width:39px;height:39px;display:grid;place-items:center;border-radius:12px;background:var(--gold);color:#171717;font-weight:950;font-size:18px;letter-spacing:-1px}
+.brand-name{font-weight:900;letter-spacing:1.3px;font-size:18px}.brand-sub{display:block;color:var(--muted);font-size:10px;letter-spacing:2.2px;font-weight:700;margin-top:-3px}
+.nav{display:flex;gap:8px;align-items:center;margin-left:auto}.nav a{text-decoration:none;color:#bdbdb8;padding:9px 12px;border-radius:10px;font-size:13px}.nav a:hover,.nav a.active{background:#302d25;color:var(--gold-hi)}
+.header-actions{display:flex;gap:8px;align-items:center}
+.icon-btn,.refresh-btn{border:1px solid var(--border);background:#242424;color:var(--text);border-radius:11px;min-height:40px;padding:0 13px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.icon-btn{width:42px;padding:0;font-size:18px}.refresh-btn{font-size:13px;font-weight:700}.refresh-btn:hover,.icon-btn:hover{border-color:#75633a;color:var(--gold-hi)}.refresh-btn:disabled{opacity:.55;cursor:wait}
+main{max-width:1240px;margin:auto;padding:0 24px 48px}
+.hero{padding:48px 0 32px;display:grid;grid-template-columns:minmax(0,1.4fr) minmax(270px,.6fr);gap:32px;align-items:center}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;color:var(--gold);font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase}.eyebrow:before{content:"";width:20px;height:1px;background:var(--gold)}
+.hero h1{font-size:clamp(34px,5.3vw,62px);line-height:1.03;letter-spacing:-2.6px;margin:14px 0 16px;max-width:680px}.hero h1 span{color:var(--gold)}
+.hero-copy{max-width:570px;color:#b1b1ab;font-size:15px;margin:0}
+.hero-panel{border:1px solid #4a402b;background:linear-gradient(135deg,#292720,#222 70%);border-radius:20px;padding:22px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.stat{padding:14px;border:1px solid #454137;border-radius:14px;background:rgba(0,0,0,.13)}.stat-number{font-size:31px;font-weight:850;letter-spacing:-1px;line-height:1.2}.stat-number.gold{color:var(--gold-hi)}.stat-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-top:6px}
+.panel-foot{grid-column:1/-1;color:#aaa;font-size:12px;display:flex;align-items:center;gap:8px;padding:2px 3px 0}.status-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px #d4af5a1b}
+.section-head{display:flex;align-items:end;justify-content:space-between;gap:18px;margin:18px 0 18px}.section-head h2{font-size:23px;letter-spacing:-.7px;margin:0}.section-head p{margin:5px 0 0;color:var(--muted);font-size:13px}
+.discovery{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:22px 0 18px}
+.search-wrap{position:relative;flex:1 1 260px;max-width:430px}.search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:17px;height:17px;stroke:#929292;pointer-events:none}.search{width:100%;height:44px;border:1px solid var(--border);border-radius:12px;background:#222;color:var(--text);padding:0 14px 0 42px;outline:none}.search:focus{border-color:var(--gold)}
+.filters{display:flex;gap:6px;flex-wrap:wrap}.filter{border:1px solid var(--border);border-radius:10px;padding:10px 14px;background:#222;color:#b9b9b3;font-size:12px;font-weight:750}.filter[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:#171717}.clear-btn{border:0;background:transparent;color:var(--gold-hi);padding:9px 6px;font-size:12px;font-weight:700}
+.results-meta{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:12px;margin:8px 0 14px}
+.matches-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.match-card{min-width:0;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;transition:border-color .18s,transform .18s}
+.match-card:hover{border-color:#79673b;transform:translateY(-3px)}
+.match-media{height:168px;position:relative;background:#202020;overflow:hidden}.match-img{width:100%;height:100%;object-fit:cover;display:block;opacity:.88}.match-media:after{content:"";position:absolute;inset:40% 0 0;background:linear-gradient(transparent,rgba(0,0,0,.7));pointer-events:none}
+.match-status{position:absolute;z-index:2;left:14px;top:14px;display:inline-flex;align-items:center;gap:7px;border-radius:7px;padding:6px 9px;background:#191919eF;border:1px solid #ffffff1c;font-size:10px;font-weight:850;letter-spacing:1px;text-transform:uppercase}
+.match-status.live{color:#ff817b}.match-status.live:before{content:"";width:6px;height:6px;border-radius:50%;background:var(--live);box-shadow:0 0 0 3px #ff625c26}
+.match-status.upcoming{color:var(--gold-hi)}.event-chip{position:absolute;z-index:2;bottom:13px;left:14px;right:14px;font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:750;color:#e5e1d7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-body{padding:17px;display:flex;flex-direction:column;flex:1}.match-title{font-size:17px;line-height:1.35;letter-spacing:-.3px;margin:0 0 12px;font-weight:800;overflow-wrap:anywhere}
+.match-meta{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;margin-bottom:18px}.meta-dot{width:3px;height:3px;background:#666;border-radius:50%}
+.card-actions{margin-top:auto}.watch-btn{display:flex;justify-content:center;align-items:center;gap:9px;width:100%;min-height:44px;border:1px solid var(--gold);border-radius:11px;background:var(--gold);color:#171717;text-decoration:none;font-size:12px;font-weight:900;letter-spacing:.6px;transition:background .15s}.watch-btn:hover{background:var(--gold-hi);border-color:var(--gold-hi)}.watch-btn.disabled{background:#242424;border-color:#3b3b3b;color:#8d8d87;cursor:not-allowed}.watch-btn svg{width:15px;height:15px}
+.state{grid-column:1/-1;text-align:center;border:1px dashed #454545;background:#202020;border-radius:18px;padding:52px 20px}.state-symbol{width:48px;height:48px;border-radius:15px;background:#302d25;color:var(--gold);display:grid;place-items:center;margin:0 auto 14px;font-size:22px}.state h3{margin:0 0 6px;font-size:18px}.state p{color:var(--muted);margin:0 auto;max-width:420px;font-size:13px}.state button{margin-top:18px}
+.skeleton{height:330px;border-radius:18px;background:linear-gradient(100deg,#252525 20%,#303030 38%,#252525 58%);background-size:200% 100%;animation:shimmer 1.25s linear infinite;border:1px solid #343434}
+@keyframes shimmer{to{background-position:-200% 0}}
+.footer{border-top:1px solid var(--border);padding:24px 0 0;margin-top:42px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:12px}.footer strong{color:var(--gold)}
+.modal-backdrop{position:fixed;inset:0;z-index:50;background:#000b;display:grid;place-items:center;padding:20px}.modal-backdrop[hidden]{display:none}.modal{width:min(100%,380px);background:#252525;border:1px solid #4b422e;border-radius:20px;padding:25px;box-shadow:0 24px 80px #0009}.modal-mark{width:48px;height:48px;background:#2d2a21;color:var(--gold);border-radius:15px;display:grid;place-items:center;font-size:22px;margin-bottom:15px}.modal h2{font-size:21px;margin:0 0 7px}.modal p{color:var(--muted);font-size:13px;margin:0 0 20px}.modal-actions{display:flex;gap:10px}.modal-actions a,.modal-actions button{flex:1;text-align:center;text-decoration:none;border-radius:10px;padding:12px;font-size:13px;font-weight:800}.modal-join{background:var(--gold);color:#171717;border:1px solid var(--gold)}.modal-later{background:#303030;color:var(--text);border:1px solid #444}
+@media(max-width:900px){.hero{grid-template-columns:1fr .75fr;gap:20px}.matches-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.nav{display:none}}
+@media(max-width:600px){.header-inner{padding:11px 15px;gap:12px}.brand-mark{width:35px;height:35px}.brand-name{font-size:16px}.header-actions{margin-left:auto}.refresh-btn{width:40px;padding:0;font-size:0}.refresh-btn span{font-size:17px}main{padding:0 15px 32px}.hero{display:flex;flex-direction:column;align-items:stretch;padding:34px 0 23px;gap:22px}.hero h1{font-size:clamp(35px,10vw,49px);letter-spacing:-1.7px}.hero-copy{font-size:14px}.hero-panel{padding:12px;gap:9px}.stat{padding:12px}.stat-number{font-size:27px}.section-head{align-items:start;flex-direction:column;gap:4px}.section-head h2{font-size:21px}.discovery{margin-top:16px}.search-wrap{max-width:none;flex-basis:100%}.filters{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.filter{padding:10px 7px}.matches-grid{grid-template-columns:1fr;gap:13px}.match-card{display:grid;grid-template-columns:116px minmax(0,1fr);min-height:156px}.match-media{height:100%;min-height:156px}.event-chip{font-size:8px;left:8px;right:8px;bottom:9px;white-space:normal;max-height:2.4em}.match-status{top:8px;left:8px;font-size:8px;padding:5px 6px}.card-body{padding:12px;min-width:0}.match-title{font-size:14px;margin-bottom:8px}.match-meta{font-size:10px;gap:5px;margin-bottom:10px;flex-wrap:wrap}.watch-btn{min-height:38px;font-size:10px}.results-meta{font-size:11px}.footer{margin-top:28px}.skeleton{height:180px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+
+/* ALLROUNDER art direction — editorial scorecard, not a generic card grid */
+:root{
+  --bg:#111210;--bg2:#191a17;--card:#1d1e1a;--border:#34352e;
+  --gold:#d9b45c;--gold-hi:#f3d98d;--muted:#92938a;
+}
+body{
+  background:
+    radial-gradient(ellipse at 76% 8%,rgba(217,180,92,.075),transparent 28rem),
+    linear-gradient(135deg,#111210 0%,#151613 48%,#10110f 100%);
+}
+.site-header{background:rgba(17,18,16,.86);border-bottom-color:rgba(217,180,92,.18)}
+.header-inner{max-width:1320px}
+.brand-mark{
+  position:relative;border-radius:4px 13px 4px 13px;
+  background:linear-gradient(145deg,#f4dc98,#b98b35);
+  box-shadow:0 5px 22px rgba(217,180,92,.16);
+}
+.brand-mark:after{content:"";position:absolute;inset:5px;border:1px solid rgba(17,18,16,.35);border-radius:2px 9px 2px 9px}
+.brand-name{letter-spacing:1.9px}
+.brand-sub{letter-spacing:2.8px}
+.nav a{border-radius:3px 3px 0 0;position:relative}
+.nav a.active:after{content:"";position:absolute;bottom:-15px;left:12px;right:12px;height:2px;background:var(--gold)}
+main{max-width:1320px}
+.hero{
+  position:relative;isolation:isolate;overflow:hidden;
+  margin:28px 0 38px;padding:clamp(30px,5vw,64px);
+  min-height:300px;grid-template-columns:minmax(0,1.55fr) minmax(260px,.55fr);
+  gap:clamp(22px,4vw,60px);border:1px solid rgba(217,180,92,.24);
+  border-radius:5px 30px 5px 30px;
+  background:linear-gradient(105deg,rgba(34,35,29,.98),rgba(21,22,19,.88) 60%,rgba(31,29,21,.94));
+  box-shadow:0 24px 70px rgba(0,0,0,.18);
+}
+.hero:before{
+  content:"";position:absolute;z-index:-1;inset:0 0 0 48%;
+  background:
+    repeating-linear-gradient(118deg,transparent 0 30px,rgba(217,180,92,.06) 31px 32px,transparent 33px 62px),
+    radial-gradient(ellipse at 70% 45%,rgba(217,180,92,.14),transparent 56%);
+  clip-path:polygon(20% 0,100% 0,100% 100%,0 100%);
+}
+.hero:after{
+  content:"AR / 01";position:absolute;right:24px;top:18px;
+  font-size:9px;letter-spacing:3px;font-weight:800;color:rgba(243,217,141,.52);
+}
+.hero h1{font-size:clamp(39px,5.8vw,76px);letter-spacing:-3.8px;line-height:.98;max-width:740px;text-transform:uppercase}
+.hero h1 span{
+  display:inline-block;margin-top:7px;color:var(--gold-hi);
+  background:linear-gradient(90deg,#f3d98d,#c9a34a 70%,#f3d98d);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.eyebrow{letter-spacing:2.6px;font-size:10px}
+.eyebrow:before{width:28px;height:2px}
+.hero-copy{max-width:500px;color:#b6b7ad;line-height:1.8}
+.hero-panel{
+  position:relative;align-self:stretch;align-content:center;gap:10px;
+  border:1px solid rgba(217,180,92,.28);border-radius:3px 18px 3px 18px;
+  background:linear-gradient(145deg,rgba(217,180,92,.09),rgba(0,0,0,.18));
+  padding:16px;backdrop-filter:blur(8px);
+}
+.stat{border-radius:3px 12px 3px 12px;background:rgba(8,9,8,.28);border-color:rgba(217,180,92,.14)}
+.stat-number{font-size:clamp(30px,3vw,42px);font-variant-numeric:tabular-nums}
+.stat-label{letter-spacing:1.8px}
+.panel-foot{font-size:11px;line-height:1.5}
+.section-head{padding-bottom:14px;border-bottom:1px solid rgba(217,180,92,.19);align-items:center}
+.section-head h2{font-size:clamp(22px,2.4vw,30px);letter-spacing:-1px}
+#matches-heading{position:relative}
+#matches-heading:after{content:"";display:inline-block;width:24px;height:2px;background:var(--gold);margin:0 0 6px 12px}
+.search{border-radius:4px 12px 4px 12px;background:#191a17;border-color:#393a32}
+.search:focus{box-shadow:0 0 0 3px rgba(217,180,92,.1)}
+.filter{border-radius:4px 10px 4px 10px;background:#191a17}
+.filter[aria-pressed="true"]{background:var(--gold);box-shadow:0 4px 18px rgba(217,180,92,.13)}
+.clear-btn{text-decoration:underline;text-decoration-color:rgba(243,217,141,.4);text-underline-offset:4px}
+.results-meta{text-transform:uppercase;letter-spacing:.8px;font-size:10px}
+.matches-grid{gap:20px}
+.match-card{
+  position:relative;border-radius:4px 18px 4px 18px;background:linear-gradient(145deg,#22231f,#191a17);
+  border-color:#34352e;box-shadow:0 8px 22px rgba(0,0,0,.13);
+}
+.match-card:before{content:"";position:absolute;z-index:3;left:0;top:0;width:3px;height:0;background:var(--gold);transition:height .24s ease}
+.match-card:hover{border-color:rgba(217,180,92,.58);transform:translateY(-5px);box-shadow:0 18px 38px rgba(0,0,0,.25)}
+.match-card:hover:before{height:100%}
+.match-media{height:185px;background:#171814}
+.match-img{filter:saturate(.72) contrast(1.08);transition:transform .55s cubic-bezier(.2,.7,.2,1),filter .35s}
+.match-card:hover .match-img{transform:scale(1.055);filter:saturate(.95) contrast(1.08)}
+.match-media:after{background:linear-gradient(180deg,rgba(0,0,0,.15),transparent 28%,rgba(0,0,0,.8))}
+.match-status{border-radius:3px 8px 3px 8px;backdrop-filter:blur(10px)}
+.card-body{padding:20px}
+.match-title{font-size:18px;letter-spacing:-.45px}
+.match-meta{padding-bottom:13px;border-bottom:1px solid rgba(255,255,255,.06)}
+.watch-btn{border-radius:3px 11px 3px 11px;text-transform:uppercase;letter-spacing:1.2px;background:linear-gradient(100deg,#d9b45c,#f0d58a);box-shadow:0 5px 16px rgba(217,180,92,.08)}
+.watch-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(217,180,92,.16)}
+.state{border-radius:4px 18px 4px 18px;background:rgba(29,30,26,.72);border-color:rgba(217,180,92,.25)}
+.skeleton{border-radius:4px 18px 4px 18px}
+.footer{border-top-color:rgba(217,180,92,.22);letter-spacing:.1px}
+.footer strong{letter-spacing:1.4px}
+.modal{border-radius:4px 20px 4px 20px}
+@media(max-width:900px){
+  .hero{margin:20px 0 30px;padding:32px;grid-template-columns:1fr .7fr}
+  .hero h1{letter-spacing:-2.5px}
+  .match-media{height:165px}
+}
+@media(max-width:600px){
+  .hero{margin:15px 0 27px;padding:26px 20px 20px;border-radius:4px 20px 4px 20px;min-height:0}
+  .hero:before{inset:30% 0 0 18%;opacity:.8}
+  .hero:after{right:16px;top:13px;font-size:8px}
+  .hero h1{font-size:clamp(36px,10.5vw,51px);letter-spacing:-2.2px;line-height:1}
+  .hero-copy{line-height:1.7}
+  .hero-panel{padding:10px;border-radius:3px 12px 3px 12px}
+  .stat{padding:11px}
+  .stat-number{font-size:29px}
+  .section-head{padding-bottom:12px}
+  .matches-grid{gap:12px}
+  .match-card{border-radius:4px 14px 4px 14px}
+  .match-media{min-height:156px}
+  .card-body{padding:12px}
+  .match-title{font-size:14px}
+}
+@media(prefers-reduced-motion:reduce){
+  .match-card,.match-img,.watch-btn{transition:none!important}
+}
+
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="./" aria-label="ALLROUNDER home">
+      <span class="brand-mark" aria-hidden="true">A</span>
+      <span><span class="brand-name">ALLROUNDER</span><span class="brand-sub">CRICKET • LIVE</span></span>
+    </a>
+    <nav class="nav" aria-label="Main navigation"><a class="active" href="#matches">Matches</a><a href="#live" id="nav-live">Live action</a></nav>
+    <div class="header-actions">
+      <button class="icon-btn" id="focus-search" aria-label="Focus match search" title="Search matches">⌕</button>
+      <button class="refresh-btn" id="refresh-btn" type="button"><span aria-hidden="true">↻</span> Refresh</button>
+    </div>
+  </div>
+</header>
+<main>
+  <section class="hero" aria-labelledby="hero-title">
+    <div>
+      <div class="eyebrow">The matchday destination</div>
+      <h1>Every match.<br><span>One all-round view.</span></h1>
+      <p class="hero-copy">Find live cricket action, explore fixtures, and get to the match you want with a cleaner, faster matchday experience.</p>
+    </div>
+    <div class="hero-panel" aria-label="Live match statistics">
+      <div class="stat"><div class="stat-number gold" id="stat-live">—</div><div class="stat-label">Live now</div></div>
+      <div class="stat"><div class="stat-number" id="stat-total">—</div><div class="stat-label">Matches in feed</div></div>
+      <div class="panel-foot"><span class="status-dot"></span><span id="feed-status" aria-live="polite">Connecting to match feed…</span></div>
+    </div>
+  </section>
+  <section id="matches" aria-labelledby="matches-heading">
+    <div class="section-head"><div><div class="eyebrow">Match centre</div><h2 id="matches-heading">Discover matches</h2><p>Live status and details are based on the current match feed.</p></div></div>
+    <div class="discovery">
+      <label class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>
+        <input class="search" id="match-search" type="search" placeholder="Search match or tournament…" autocomplete="off" aria-label="Search match or tournament">
+      </label>
+      <div class="filters" role="group" aria-label="Filter matches">
+        <button class="filter" data-filter="all" aria-pressed="true">All</button>
+        <button class="filter" data-filter="live" aria-pressed="false">Live</button>
+        <button class="filter" data-filter="upcoming" aria-pressed="false" hidden>Upcoming</button>
+        <button class="filter" data-filter="completed" aria-pressed="false" hidden>Completed</button>
+      </div>
+      <button class="clear-btn" id="clear-filters" type="button">Clear filters</button>
+    </div>
+    <div class="results-meta"><span id="results-count">Loading matches…</span><span id="updated-at"></span></div>
+    <div id="matches-container" class="matches-grid" aria-live="polite" aria-busy="true">
+      <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+    </div>
+  </section>
+  <footer class="footer"><span>Made for cricket people. <strong>ALLROUNDER</strong></span><a href="https://t.me/+xdQNNePetGxjYjI1" target="_blank" rel="noopener noreferrer">Join the Telegram community ↗</a></footer>
+</main>
+<div class="modal-backdrop" id="tg-modal" hidden>
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="tg-title">
+    <div class="modal-mark" aria-hidden="true">↗</div><h2 id="tg-title">Stay in the loop</h2>
+    <p>Join the ALLROUNDER Telegram community for match-day updates. This is optional; the match centre works without joining.</p>
+    <div class="modal-actions"><button class="modal-later" id="tg-later" type="button">Maybe later</button><a class="modal-join" id="tg-join" href="https://t.me/+uMLMcSi1UwNlODU1" target="_blank" rel="noopener noreferrer">Join Telegram</a></div>
+  </section>
+</div>
+<script>
+'use strict';
+const PLAYER_PAGE = "play.html";
+const DATA_URLS = [
+  "https://raw.githubusercontent.com/drmlive/fancode-live-events/main/fancode.json",
+  "https://api.allorigins.win/raw?url=" +
+    encodeURIComponent("https://raw.githubusercontent.com/drmlive/fancode-live-events/main/fancode.json")
+];
+const TELEGRAM_URL = "https://t.me/+xdQNNePetGxjYjI1";
+const FALLBACK_IMAGE = "https://www.fancode.com/skillup-uploads/cms-media/Cricket_Fallback_Old_match-card.jpg";
+const container = document.getElementById("matches-container");
+const searchInput = document.getElementById("match-search");
+const refreshBtn = document.getElementById("refresh-btn");
+const filters = [...document.querySelectorAll("[data-filter]")];
+let allMatches = [];
+let activeFilter = "all";
+let requestInFlight = false;
+let lastSuccessfulFetch = 0;
+
+async function fetchMatches(){
+  let lastError = null;
+  for(const url of DATA_URLS){
+    try{
+      const sep = url.includes("?") ? "&" : "?";
+      const res = await fetch(url + sep + "t=" + Date.now(), {
+        cache: "no-store",
+        headers: { "Accept": "application/json" }
+      });
+      if(!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      if(data && Array.isArray(data.matches)) return data;
+      throw new Error("Invalid JSON structure");
+    }catch(error){ lastError = error; }
+  }
+  throw lastError || new Error("All sources failed");
+}
+function extractLang(match){
+  if(match && typeof match.lang === "string" && match.lang) return match.lang;
+  const name = String(match?.match_name || "") + " " + String(match?.title || "");
+  const bracketMatch = name.match(/\[([^\]]+)\]/);
+  if(bracketMatch){
+    const langName = bracketMatch[1].trim().toLowerCase();
+    const langMap = {english:"en",hindi:"hi",tamil:"ta",telugu:"te",kannada:"kn",malayalam:"ml",bengali:"bn",marathi:"mr",gujarati:"gu",punjabi:"pa"};
+    if(langMap[langName]) return langMap[langName];
+    if(langName.length >= 2) return langName.substring(0,2);
+  }
+  const mid = match?.match_id;
+  if(mid !== undefined && mid !== null && String(mid).includes("_")){
+    const suffix = String(mid).split("_").pop().toLowerCase();
+    const suffixMap = {eng:"en",hin:"hi",tam:"ta",tel:"te",kan:"kn",mal:"ml",ben:"bn",mar:"mr"};
+    if(suffixMap[suffix]) return suffixMap[suffix];
+  }
+  return "en";
+}
+function text(value, fallback=""){
+  return value === undefined || value === null || value === "" ? fallback : String(value);
+}
+function safeImageUrl(value){
+  if(typeof value !== "string" || !value.trim()) return FALLBACK_IMAGE;
+  try{
+    const url = new URL(value, location.href);
+    if(url.protocol === "https:" || url.protocol === "http:") return url.href;
+  }catch(_){}
+  return FALLBACK_IMAGE;
+}
+function getStatus(match){ return text(match?.status).trim().toUpperCase(); }
+function statusCategory(match){
+  const status = getStatus(match);
+  if(status === "LIVE") return "live";
+  if(/\b(COMPLETED|FINISHED|RESULT|ENDED|ABANDONED|CANCELLED|CANCELED)\b/.test(status)) return "completed";
+  if(/\b(UPCOMING|SCHEDULED|NOT STARTED|PREVIEW)\b/.test(status)) return "upcoming";
+  return "other";
+}
+function updateStats(){
+  document.getElementById("stat-total").textContent = String(allMatches.length);
+  document.getElementById("stat-live").textContent = String(allMatches.filter(m => getStatus(m) === "LIVE").length);
+  document.getElementById("feed-status").textContent = "Feed updated successfully";
+  const hasUpcoming = allMatches.some(m => statusCategory(m) === "upcoming");
+  const hasCompleted = allMatches.some(m => statusCategory(m) === "completed");
+  document.querySelector('[data-filter="upcoming"]').hidden = !hasUpcoming;
+  document.querySelector('[data-filter="completed"]').hidden = !hasCompleted;
+  if(activeFilter === "upcoming" && !hasUpcoming) setFilter("all");
+  if(activeFilter === "completed" && !hasCompleted) setFilter("all");
+}
+function makeIconPlay(){
+  const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+  svg.setAttribute("viewBox","0 0 24 24");svg.setAttribute("fill","currentColor");svg.setAttribute("aria-hidden","true");
+  const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+  path.setAttribute("d","M8 5.5v13l10-6.5z");svg.appendChild(path);return svg;
+}
+function createCard(match){
+  const isLive = getStatus(match) === "LIVE";
+  const id = match?.match_id !== undefined && match?.match_id !== null ? String(match.match_id) : "";
+  const lang = extractLang(match);
+  const title = text(match?.match_name || match?.title, "Match details unavailable");
+  const event = text(match?.event_name, "Cricket");
+  const startTime = text(match?.startTime, "Time TBA");
+  const card = document.createElement("article");card.className = "match-card";
+  const media = document.createElement("div");media.className = "match-media";
+  const img = document.createElement("img");img.className = "match-img";img.loading = "lazy";img.alt = "";img.src = safeImageUrl(match?.src);
+  img.addEventListener("error",()=>{if(img.src !== FALLBACK_IMAGE) img.src = FALLBACK_IMAGE;},{once:true});
+  const status = document.createElement("span");status.className = "match-status " + (isLive ? "live" : statusCategory(match) === "upcoming" ? "upcoming" : "");status.textContent = isLive ? "LIVE NOW" : text(match?.status,"STATUS UNKNOWN");
+  const eventChip = document.createElement("span");eventChip.className="event-chip";eventChip.textContent=event;eventChip.title=event;
+  media.append(img,status,eventChip);
+  const body=document.createElement("div");body.className="card-body";
+  const heading=document.createElement("h3");heading.className="match-title";heading.textContent=title;
+  const meta=document.createElement("div");meta.className="match-meta";
+  const time=document.createElement("span");time.textContent=startTime;
+  const dot=document.createElement("span");dot.className="meta-dot";dot.setAttribute("aria-hidden","true");
+  const language=document.createElement("span");language.textContent=lang.toUpperCase();
+  meta.append(time,dot,language);
+  const actions=document.createElement("div");actions.className="card-actions";
+  if(isLive && id){
+    const link=document.createElement("a");link.className="watch-btn";link.href=`${PLAYER_PAGE}?id=${encodeURIComponent(id)}&lang=${encodeURIComponent(lang)}`;
+    link.append(makeIconPlay(),document.createTextNode(" WATCH LIVE"));actions.append(link);
+  }else{
+    const disabled=document.createElement("div");disabled.className="watch-btn disabled";disabled.setAttribute("aria-disabled","true");
+    disabled.textContent=statusCategory(match)==="completed"?"Match completed":statusCategory(match)==="upcoming"?"Not live yet":"Unavailable";actions.append(disabled);
+  }
+  body.append(heading,meta,actions);card.append(media,body);return card;
+}
+function renderMatches(){
+  container.replaceChildren();
+  const query=searchInput.value.trim().toLocaleLowerCase();
+  const filtered=allMatches.filter(match=>{
+    const title=text(match?.match_name || match?.title).toLocaleLowerCase();
+    const event=text(match?.event_name).toLocaleLowerCase();
+    const status=statusCategory(match);
+    return (!query || title.includes(query) || event.includes(query)) &&
+      (activeFilter==="all" || (activeFilter==="live" ? getStatus(match)==="LIVE" : status===activeFilter));
+  });
+  document.getElementById("results-count").textContent=`${filtered.length} ${filtered.length===1?"match":"matches"} shown`;
+  if(!filtered.length){
+    const state=document.createElement("div");state.className="state";
+    const symbol=document.createElement("div");symbol.className="state-symbol";symbol.textContent=allMatches.length?"⌕":"!";
+    const h=document.createElement("h3");h.textContent=allMatches.length?"No matches found":"No match data available";
+    const p=document.createElement("p");p.textContent=allMatches.length?"Try another search or clear your filters to see more matches.":"The match feed returned no matches. Refresh to try again.";
+    state.append(symbol,h,p);
+    const btn=document.createElement("button");btn.className="watch-btn";btn.style.maxWidth="180px";btn.style.margin="18px auto 0";btn.textContent=allMatches.length?"Clear filters":"Retry";
+    btn.addEventListener("click",()=>allMatches.length?clearFilters():initApp());
+    state.append(btn);container.append(state);return;
+  }
+  const fragment=document.createDocumentFragment();
+  filtered.forEach(match=>{try{fragment.append(createCard(match));}catch(error){console.warn("Skipped malformed match record",error);}});
+  container.append(fragment);
+}
+function setFilter(filter){
+  activeFilter=filter;
+  filters.forEach(btn=>btn.setAttribute("aria-pressed",String(btn.dataset.filter===filter)));
+  renderMatches();
+}
+function clearFilters(){searchInput.value="";setFilter("all");}
+function showLoading(){
+  container.setAttribute("aria-busy","true");container.replaceChildren();
+  for(let n=0;n<3;n++){const sk=document.createElement("div");sk.className="skeleton";container.append(sk);}
+  document.getElementById("results-count").textContent="Loading matches…";
+  document.getElementById("feed-status").textContent="Refreshing match feed…";
+}
+function showError(){
+  container.setAttribute("aria-busy","false");container.replaceChildren();
+  document.getElementById("feed-status").textContent=allMatches.length?"Could not refresh · showing last loaded data":"Could not connect to match feed";
+  document.getElementById("results-count").textContent="Feed unavailable";
+  if(allMatches.length){renderMatches();return;}
+  const state=document.createElement("div");state.className="state";
+  const symbol=document.createElement("div");symbol.className="state-symbol";symbol.textContent="!";
+  const h=document.createElement("h3");h.textContent="Couldn’t load matches";
+  const p=document.createElement("p");p.textContent="The live feed could not be reached from this browser. Check your connection and try again.";
+  const btn=document.createElement("button");btn.className="watch-btn";btn.style.maxWidth="160px";btn.style.margin="18px auto 0";btn.textContent="Try again";btn.addEventListener("click",()=>initApp());
+  state.append(symbol,h,p,btn);container.append(state);
+}
+async function initApp(){
+  if(requestInFlight)return;
+  requestInFlight=true;refreshBtn.disabled=true;refreshBtn.innerHTML='<span aria-hidden="true">↻</span> Refreshing';showLoading();
+  try{
+    const data=await fetchMatches();
+    allMatches=Array.isArray(data.matches)?data.matches.filter(m=>m&&typeof m==="object"):[];
+    lastSuccessfulFetch=Date.now();updateStats();renderMatches();
+    document.getElementById("updated-at").textContent="Updated "+new Date(lastSuccessfulFetch).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+    document.getElementById("feed-status").textContent="Feed updated successfully";
+  }catch(error){console.error("Match feed error:",error);showError();}
+  finally{requestInFlight=false;refreshBtn.disabled=false;refreshBtn.innerHTML='<span aria-hidden="true">↻</span> Refresh';container.setAttribute("aria-busy","false");}
+}
+filters.forEach(btn=>btn.addEventListener("click",()=>setFilter(btn.dataset.filter)));
+searchInput.addEventListener("input",renderMatches);
+document.getElementById("clear-filters").addEventListener("click",clearFilters);
+refreshBtn.addEventListener("click",initApp);
+document.getElementById("focus-search").addEventListener("click",()=>{searchInput.focus();document.getElementById("matches").scrollIntoView({behavior:"smooth",block:"start"});});
+document.getElementById("nav-live").addEventListener("click",()=>setFilter("live"));
+const modal=document.getElementById("tg-modal");
+document.getElementById("tg-later").addEventListener("click",()=>{modal.hidden=true;});
+document.getElementById("tg-join").addEventListener("click",()=>{modal.hidden=true;});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")modal.hidden=true;});
+/* Optional, delayed Telegram invitation: appears once per page load and never blocks match use. */
+window.addEventListener("load",()=>{window.setTimeout(()=>{if(!modal.hidden)return;modal.hidden=false;},12000);},{once:true});
+initApp();
+</script>
+</body>
+</html>
